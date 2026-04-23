@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: evidence-api
+    ports:
+      - "8080:8080"
+    environment:
+      - AZURITE_ACCOUNT_NAME=${AZURITE_ACCOUNT_NAME:-devstoreaccount}
+      - AZURITE_ACCOUNT_KEY=${AZURITE_ACCOUNT_KEY:-Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBekSoGMHgHb==}
+      - AZURITE_BLOB_ENDPOINT=http://azurite:10000/devstoreaccount
+      - AZURITE_CONTAINER_NAME=${AZURITE_CONTAINER_NAME:-evidences}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      azurite:
+        condition: service_started
+    networks:
+      - evidence-network
+    restart: unless-stopped
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: azurite
+    ports:
+      - "10000:10000"
+    volumes:
+      - azurite-data:/data
+    networks:
+      - evidence-network
+    restart: unless-stopped
+    command: ["azurite-blob", "--host", "0.0.0.0", "--blobHost", "0.0.0.0", "--blobPort", "10000", "--dataLocation", "/data"]
+
+volumes:
+  azurite-data:
+    name: evidence-azurite-data
+
+networks:
+  evidence-network:
+    driver: bridge
+    name: evidence-network
